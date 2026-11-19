@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMONIKA - Monitoring Tugas Kepala Perpustakaan | Universitas Peradaban</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        peradaban: {
+                            navy: '#0F2544',
+                            blue: '#1E3A8A',
+                            light: '#EFF6FF',
+                            gold: '#D97706',
+                            goldLight: '#FEF3C7',
+                            goldAccent: '#F59E0B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Print Styles for Annual Report */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-report-area, #printable-report-area * {
+                visibility: visible;
+            }
+            #printable-report-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                background: white !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-peradaban-navy selection:text-white">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Main App Layout -->
+    <div class="min-h-screen flex flex-col lg:flex-row">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-full lg:w-72 bg-peradaban-navy text-white flex-shrink-0 flex flex-col justify-between shadow-xl z-20 no-print">
+            <div>
+                <!-- Brand Header -->
+                <div class="p-6 border-b border-white/10 flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-peradaban-navy shadow-lg flex-shrink-0">
+                        <i data-lucide="library" class="w-6 h-6 stroke-[2.5]"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold tracking-wider uppercase text-amber-400 block">Universitas Peradaban</span>
+                        <h1 class="font-display font-bold text-lg leading-tight tracking-tight text-white">SIMONIKA PERPUS</h1>
+                    </div>
+                </div>
+
+                <!-- User Profile Card -->
+                <div class="p-4 mx-4 mt-5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-800 border-2 border-amber-400 flex items-center justify-center font-bold text-amber-300 text-sm">
+                        KP
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-sm font-semibold text-white truncate">Kepala Perpustakaan</p>
+                        <p class="text-xs text-slate-300 truncate">UPT Perpustakaan Pusat</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Menu -->
+                <nav class="mt-6 px-4 space-y-1.5">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-amber-500 text-peradaban-navy font-semibold shadow-md">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        <span>Dashboard & Analitik</span>
+                    </button>
+                    <button onclick="switchTab('tasks')" id="nav-tasks" class="nav-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-all">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="check-square" class="w-5 h-5"></i>
+                            <span>Daftar Tugas Utama</span>
+                        </div>
+                        <span id="sidebar-urgent-badge" class="hidden px-2 py-0.5 text-xs font-bold bg-rose-500 text-white rounded-full">0</span>
+                    </button>
+                    <button onclick="switchTab('report')" id="nav-report" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-all">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                        <span>Generate Laporan Tahunan</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Bottom Actions & Reset -->
+            <div class="p-4 m-4 rounded-xl bg-blue-950/60 border border-white/10 space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-300">
+                    <span>Tahun Akademik</span>
+                    <span class="font-bold text-amber-400" id="display-year">2026</span>
+                </div>
+                <div class="pt-2 border-t border-white/10 flex flex-col gap-2">
+                    <button onclick="openResetModal()" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span>Reset 18 Tugas Bawaan</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col min-w-0">
+            
+            <!-- Top Header Bar -->
+            <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sticky top-0 z-10 no-print">
+                <div>
+                    <h2 id="page-title" class="font-display font-bold text-xl text-peradaban-navy">Dashboard & Analitik Kinerja</h2>
+                    <p id="page-subtitle" class="text-xs text-slate-500 mt-0.5">Monitoring real-time 18 program kerja strategis & operasional perpustakaan</p>
+                </div>
+                <div class="flex items-center gap-3 self-start sm:self-auto">
+                    <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-medium text-slate-600">
+                        <i data-lucide="calendar" class="w-4 h-4 text-peradaban-navy"></i>
+                        <span id="current-date-display">Memuat tanggal...</span>
+                    </div>
+                    <button onclick="openTaskModal()" class="flex items-center gap-2 bg-peradaban-navy hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95">
+                        <i data-lucide="plus" class="w-4 h-4 text-amber-400"></i>
+                        <span>Tambah Tugas</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- VIEW 1: DASHBOARD & ANALITIK -->
+            <section id="view-dashboard" class="p-6 space-y-6 max-w-7xl mx-auto w-full">
+                
+                <!-- Urgent Alert Banner (Dynamic) -->
+                <div id="urgent-banner" class="hidden bg-gradient-to-r from-rose-50 to-amber-50 border-l-4 border-rose-500 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3">
+                        <div class="p-2 bg-rose-100 text-rose-600 rounded-lg mt-0.5">
+                            <i data-lucide="bell-ring" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-rose-900">Pengingat Tenggat Waktu & Tugas Mendesak!</h3>
+                            <p id="urgent-banner-text" class="text-xs text-rose-700 mt-0.5">Terdapat beberapa tugas yang mendekati batas waktu atau melewati tenggat.</p>
+                        </div>
+                    </div>
+                    <button onclick="filterUrgentTasks()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors whitespace-nowrap">
+                        Tinjau Sekarang
+                    </button>
+                </div>
+
+                <!-- KPI Summary Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- Total Tugas -->
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Program Kerja</span>
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-peradaban-navy flex items-center justify-center">
+                                <i data-lucide="layers" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-baseline gap-2">
+                            <span id="stat-total" class="font-display font-extrabold text-3xl text-peradaban-navy">18</span>
+                            <span class="text-xs text-slate-500 font-medium">Tugas Terdaftar</span>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-500">Capaian Keseluruhan</span>
+                            <span id="stat-completion-rate" class="font-bold text-peradaban-navy">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Selesai -->
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Tugas Selesai</span>
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-baseline gap-2">
+                            <span id="stat-done" class="font-display font-extrabold text-3xl text-emerald-600">0</span>
+                            <span class="text-xs text-slate-500 font-medium">Terlaksana</span>
+                        </div>
+                        <div class="mt-3 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div id="bar-done" class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Dalam Proses -->
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dalam Proses</span>
+                            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                <i data-lucide="clock" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-baseline gap-2">
+                            <span id="stat-progress" class="font-display font-extrabold text-3xl text-amber-600">0</span>
+                            <span class="text-xs text-slate-500 font-medium">Sedang Berjalan</span>
+                        </div>
+                        <div class="mt-3 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div id="bar-progress" class="bg-amber-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Mendesak / Belum -->
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Mendesak / Terlambat</span>
+                            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-baseline gap-2">
+                            <span id="stat-urgent" class="font-display font-extrabold text-3xl text-rose-600">0</span>
+                            <span class="text-xs text-slate-500 font-medium">Perlu Perhatian</span>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-500">Belum Dikerjakan</span>
+                            <span id="stat-todo" class="font-bold text-slate-700">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Row: Category Breakdown & Urgent Deadlines -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Progres per Kategori -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+                        <div class="flex items-center justify-between mb-5">
+                            <div>
+                                <h3 class="font-display font-bold text-base text-peradaban-navy">Capaian Kinerja per Bidang / Kategori</h3>
+                                <p class="text-xs text-slate-500">Persentase penyelesaian berdasarkan 5 pilar tugas Kepala Perpustakaan</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-peradaban-light text-peradaban-navy text-xs font-semibold">5 Bidang Utama</span>
+                        </div>
+                        <div id="category-progress-list" class="space-y-4">
+                            <!-- Rendered via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Pengingat Tenggat Waktu Terdekat -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-display font-bold text-base text-peradaban-navy flex items-center gap-2">
+                                    <i data-lucide="alarm-clock" class="w-5 h-5 text-amber-500"></i>
+                                    <span>Pengingat Tenggat</span>
+                                </h3>
+                                <span class="text-xs font-medium text-slate-400">Prioritas</span>
+                            </div>
+                            <div id="upcoming-deadlines-list" class="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+                                <!-- Rendered via JS -->
+                            </div>
+                        </div>
+                        <button onclick="switchTab('tasks')" class="mt-5 w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-peradaban-navy text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                            <span>Lihat Semua 18+ Tugas</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Logs -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-display font-bold text-base text-peradaban-navy">Log Aktivitas & Bukti Dukung Terbaru</h3>
+                            <p class="text-xs text-slate-500">Catatan progres terkini yang akan otomatis dirangkum dalam Laporan Tahunan</p>
+                        </div>
+                        <button onclick="switchTab('report')" class="text-xs font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1">
+                            <span>Pratinjau Laporan Tahunan</span>
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <div id="recent-logs-container" class="divide-y divide-slate-100">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- VIEW 2: DAFTAR TUGAS UTAMA -->
+            <section id="view-tasks" class="hidden p-6 space-y-6 max-w-7xl mx-auto w-full">
+                
+                <!-- Filter & Search Controls -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                        <!-- Search -->
+                        <div class="md:col-span-4 relative">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="filter-search" oninput="renderTasks()" placeholder="Cari tugas (misal: SliMS, Eprints, Skripsi)..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peradaban-navy/20 focus:border-peradaban-navy">
+                        </div>
+
+                        <!-- Filter Kategori -->
+                        <div class="md:col-span-3">
+                            <select id="filter-category" onchange="renderTasks()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-peradaban-navy/20 focus:border-peradaban-navy">
+                                <option value="ALL">Semua Kategori</option>
+                                <option value="Perencanaan & Kebijakan">Perencanaan & Kebijakan</option>
+                                <option value="Sistem & Teknologi">Sistem & Teknologi</option>
+                                <option value="Layanan & Koleksi">Layanan & Koleksi</option>
+                                <option value="Riset & Evaluasi">Riset & Evaluasi</option>
+                                <option value="Laporan">Laporan</option>
+                            </select>
+                        </div>
+
+                        <!-- Filter Frekuensi -->
+                        <div class="md:col-span-2">
+                            <select id="filter-frequency" onchange="renderTasks()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-peradaban-navy/20 focus:border-peradaban-navy">
+                                <option value="ALL">Semua Frekuensi</option>
+                                <option value="Harian">Harian</option>
+                                <option value="Mingguan">Mingguan</option>
+                                <option value="Bulanan">Bulanan</option>
+                                <option value="Semesteran">Semesteran</option>
+                                <option value="Tahunan">Tahunan</option>
+                            </select>
+                        </div>
+
+                        <!-- Filter Status -->
+                        <div class="md:col-span-3">
+                            <select id="filter-status" onchange="renderTasks()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-peradaban-navy/20 focus:border-peradaban-navy">
+                                <option value="ALL">Semua Status</option>
+                                <option value="URGENT">⚠️ Mendesak / Terlambat</option>
+                                <option value="Belum Dikerjakan">Belum Dikerjakan</option>
+                                <option value="Dalam Proses">Dalam Proses</option>
+                                <option value="Selesai">Selesai</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Quick Filter Pills -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                        <div class="flex flex-wrap items-center gap-2 text-xs">
+                            <span class="text-slate-400 font-medium">Filter Cepat:</span>
+                            <button onclick="resetFilters()" class="px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors">Semua (<span id="count-all">18</span>)</button>
+                            <button onclick="setQuickStatus('URGENT')" class="px-3 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium transition-colors">Mendesak (<span id="count-urgent">0</span>)</button>
+                            <button onclick="setQuickStatus('Dalam Proses')" class="px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium transition-colors">Dalam Proses (<span id="count-progress">0</span>)</button>
+                            <button onclick="setQuickStatus('Selesai')" class="px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium transition-colors">Selesai (<span id="count-done">0</span>)</button>
+                        </div>
+                        <span id="showing-count-text" class="text-xs text-slate-500">Menampilkan 18 tugas</span>
+                    </div>
+                </div>
+
+                <!-- Tasks Grid / List -->
+                <div id="tasks-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Rendered via JS -->
+                </div>
+
+            </section>
+
+            <!-- VIEW 3: GENERATE LAPORAN TAHUNAN -->
+            <section id="view-report" class="hidden p-6 space-y-6 max-w-5xl mx-auto w-full">
+                
+                <!-- Action Toolbar (No Print) -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                            <i data-lucide="file-check-2" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-display font-bold text-sm text-peradaban-navy">Generator Laporan Tahunan Otomatis</h3>
+                            <p class="text-xs text-slate-500">Data ditarik secara otomatis dari status tugas & log bukti dukung terkini</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+                            <label for="report-year-input" class="text-xs font-medium text-slate-500">Tahun:</label>
+                            <input type="number" id="report-year-input" value="2026" onchange="renderAnnualReport()" class="w-16 bg-transparent text-sm font-bold text-peradaban-navy focus:outline-none">
+                        </div>
+                        <button onclick="window.print()" class="flex items-center gap-2 bg-peradaban-navy hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-all">
+                            <i data-lucide="printer" class="w-4 h-4 text-amber-400"></i>
+                            <span>Cetak / Simpan PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Printable Document Container -->
+                <div id="printable-report-area" class="bg-white rounded-2xl border border-slate-200 shadow-md p-8 sm:p-12 text-slate-900">
+                    
+                    <!-- Kop Surat Akademik -->
+                    <div class="border-b-4 border-double border-peradaban-navy pb-5 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+                        <div class="flex flex-col sm:flex-row items-center gap-4">
+                            <div class="w-16 h-16 rounded-2xl bg-peradaban-navy text-amber-400 flex items-center justify-center flex-shrink-0 border-2 border-amber-500">
+                                <i data-lucide="library" class="w-9 h-9"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold tracking-widest uppercase text-amber-700">Yayasan Wakaf Perguruan Tinggi Islam Bumiayu</p>
+                                <h1 class="font-display font-extrabold text-xl sm:text-2xl text-peradaban-navy tracking-tight">UNIVERSITAS PERADABAN</h1>
+                                <h2 class="font-bold text-sm text-slate-700">UNIT PELAKSANA TEKNIS (UPT) PERPUSTAKAAN</h2>
+                                <p class="text-xs text-slate-500 mt-0.5">Jl. Raya Pagojengan Km. 3 Paguyangan, Kab. Brebes, Jawa Tengah | Website: peradaban.ac.id</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Judul Laporan -->
+                    <div class="text-center mb-8">
+                        <span class="inline-block px-3 py-1 bg-peradaban-light text-peradaban-navy text-xs font-bold uppercase tracking-wider rounded-full mb-2">Dokumen Evaluasi Kinerja Tahunan</span>
+                        <h2 class="font-display font-extrabold text-2xl text-slate-900 uppercase">LAPORAN KINERJA KEPALA PERPUSTAKAAN</h2>
+                        <p class="text-sm font-medium text-slate-600 mt-1">Periode Tahun Akademik / Kalender <span id="doc-year-title" class="font-bold text-peradaban-navy">2026</span></p>
+                    </div>
+
+                    <!-- Bab I: Ringkasan Eksekutif -->
+                    <div class="mb-8">
+                        <h3 class="font-display font-bold text-base text-peradaban-navy border-b border-slate-200 pb-2 mb-3 uppercase tracking-wide">I. Ringkasan Eksekutif & Capaian Kinerja</h3>
+                        <p id="doc-executive-summary" class="text-sm text-slate-700 leading-relaxed text-justify mb-4">
+                            <!-- Filled dynamically -->
+                        </p>
+
+                        <!-- KPI Grid in Report -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                                <span class="text-xs text-slate-500 block">Total Program Kerja</span>
+                                <span id="doc-stat-total" class="font-display font-extrabold text-xl text-peradaban-navy">18</span>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-center">
+                                <span class="text-xs text-emerald-700 block">Selesai / Terlaksana</span>
+                                <span id="doc-stat-done" class="font-display font-extrabold text-xl text-emerald-700">0</span>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-center">
+                                <span class="text-xs text-amber-700 block">Dalam Proses</span>
+                                <span id="doc-stat-progress" class="font-display font-extrabold text-xl text-amber-700">0</span>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-center">
+                                <span class="text-xs text-blue-800 block">Persentase Capaian</span>
+                                <span id="doc-stat-percent" class="font-display font-extrabold text-xl text-peradaban-navy">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bab II: Rekapitulasi per Bidang -->
+                    <div class="mb-8">
+                        <h3 class="font-display font-bold text-base text-peradaban-navy border-b border-slate-200 pb-2 mb-3 uppercase tracking-wide">II. Statistik Capaian Berdasarkan Bidang Tugas</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm border-collapse border border-slate-300">
+                                <thead>
+                                    <tr class="bg-peradaban-navy text-white text-left">
+                                        <th class="p-2.5 border border-slate-300 font-semibold">Bidang / Kategori Tugas</th>
+                                        <th class="p-2.5 border border-slate-300 font-semibold text-center">Jumlah Tugas</th>
+                                        <th class="p-2.5 border border-slate-300 font-semibold text-center">Selesai</th>
+                                        <th class="p-2.5 border border-slate-300 font-semibold text-center">Proses</th>
+                                        <th class="p-2.5 border border-slate-300 font-semibold text-center">Belum</th>
+                                        <th class="p-2.5 border border-slate-300 font-semibold text-right">Capaian (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doc-category-table">
+                                    <!-- Filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Bab III: Matriks Realisasi 18 Program Kerja & Bukti Dukung -->
+                    <div class="mb-10">
+                        <h3 class="font-display font-bold text-base text-peradaban-navy border-b border-slate-200 pb-2 mb-3 uppercase tracking-wide">III. Matriks Realisasi Program Kerja & Catatan Aktivitas</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs border-collapse border border-slate-300">
+                                <thead>
+                                    <tr class="bg-slate-100 text-peradaban-navy text-left">
+                                        <th class="p-2.5 border border-slate-300 font-bold w-10 text-center">No</th>
+                                        <th class="p-2.5 border border-slate-300 font-bold">Uraian Tugas / Program Kerja</th>
+                                        <th class="p-2.5 border border-slate-300 font-bold w-32">Kategori & Siklus</th>
+                                        <th class="p-2.5 border border-slate-300 font-bold w-28 text-center">Status</th>
+                                        <th class="p-2.5 border border-slate-300 font-bold">Realisasi / Log Bukti Dukung</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doc-tasks-table">
+                                    <!-- Filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tanda Tangan Pengesahan -->
+                    <div class="mt-12 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-8 text-sm">
+                        <div class="text-xs text-slate-500">
+                            <p>Dicetak melalui Sistem Monitoring Kinerja (SIMONIKA)</p>
+                            <p>Tanggal Cetak: <span id="doc-print-date"></span></p>
+                        </div>
+                        <div class="text-center min-w-[220px]">
+                            <p>Paguyangan, <span id="doc-sign-date"></span></p>
+                            <p class="font-semibold text-slate-800 mt-0.5">Kepala Perpustakaan</p>
+                            <p class="text-xs text-slate-600">Universitas Peradaban</p>
+                            <div class="h-20"></div>
+                            <p class="font-bold text-peradaban-navy underline underline-offset-4">_______________________________</p>
+                            <p class="text-xs text-slate-500 mt-1">NIDN / NIK. ..............................</p>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL 1: TAMBAH / EDIT TUGAS -->
+    <div id="task-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+            <div class="bg-peradaban-navy px-6 py-4 flex items-center justify-between text-white">
+                <h3 id="task-modal-title" class="font-display font-bold text-base">Tambah Tugas Baru</h3>
+                <button onclick="closeTaskModal()" class="text-slate-300 hover:text-white p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="task-form" onsubmit="saveTask(event)" class="p-6 space-y-4">
+                <input type="hidden" id="task-id">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama / Uraian Tugas <span class="text-rose-500">*</span></label>
+                    <input type="text" id="task-title" required placeholder="Contoh: Evaluasi Langganan E-Journal" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peradaban-navy/20 focus:border-peradaban-navy">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori Bidang <span class="text-rose-500">*</span></label>
+                        <select id="task-category" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:border-peradaban-navy">
+                            <option value="Perencanaan & Kebijakan">Perencanaan & Kebijakan</option>
+                            <option value="Sistem & Teknologi">Sistem & Teknologi</option>
+                            <option value="Layanan & Koleksi">Layanan & Koleksi</option>
+                            <option value="Riset & Evaluasi">Riset & Evaluasi</option>
+                            <option value="Laporan">Laporan</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Frekuensi / Siklus <span class="text-rose-500">*</span></label>
+                        <select id="task-frequency" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:border-peradaban-navy">
+                            <option value="Harian">Harian</option>
+                            <option value="Mingguan">Mingguan</option>
+                            <option value="Bulanan">Bulanan</option>
+                            <option value="Semesteran">Semesteran</option>
+                            <option value="Tahunan">Tahunan</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Status Pelaksanaan</label>
+                        <select id="task-status" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:border-peradaban-navy">
+                            <option value="Belum Dikerjakan">Belum Dikerjakan</option>
+                            <option value="Dalam Proses">Dalam Proses</option>
+                            <option value="Selesai">Selesai</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tenggat Waktu (Reminder) <span class="text-rose-500">*</span></label>
+                        <input type="date" id="task-deadline" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-peradaban-navy">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi / Indikator Keberhasilan</label>
+                    <textarea id="task-desc" rows="2" placeholder="Catatan target atau indikator capaian..." class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-peradaban-navy"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2.5">
+                    <button type="button" onclick="closeTaskModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100">Batal</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-peradaban-navy hover:bg-blue-900 text-white shadow-sm">Simpan Tugas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: DETAIL & LOG AKTIVITAS / BUKTI DUKUNG -->
+    <div id="log-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+            <div class="bg-peradaban-navy px-6 py-4 flex items-center justify-between text-white flex-shrink-0">
+                <div class="pr-4">
+                    <span id="log-modal-category" class="text-[11px] font-bold uppercase tracking-wider text-amber-400 block">Kategori</span>
+                    <h3 id="log-modal-title" class="font-display font-bold text-base leading-snug">Judul Tugas</h3>
+                </div>
+                <button onclick="closeLogModal()" class="text-slate-300 hover:text-white p-1 rounded-lg flex-shrink-0">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-5 flex-1">
+                <!-- Quick Status & Deadline Bar -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs text-slate-500 block">Ubah Status Cepat:</span>
+                        <div class="flex flex-wrap gap-1.5 mt-1.5" id="log-status-buttons">
+                            <!-- Rendered via JS -->
+                        </div>
+                    </div>
+                    <div class="sm:text-right">
+                        <span class="text-xs text-slate-500 block">Tenggat Pengingat:</span>
+                        <span id="log-modal-deadline" class="text-sm font-bold text-peradaban-navy"></span>
+                    </div>
+                </div>
+
+                <!-- Add New Log Entry Form -->
+                <form onsubmit="addActivityLog(event)" class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-peradaban-navy flex items-center gap-1.5">
+                        <i data-lucide="file-plus-2" class="w-4 h-4 text-amber-600"></i>
+                        <span>Catat Progres / Bukti Dukung Baru</span>
+                    </h4>
+                    <input type="hidden" id="log-task-id">
+                    <div>
+                        <textarea id="log-note-input" required rows="2" placeholder="Tuliskan progres pekerjaan, hasil monitoring, atau tautan/nomor dokumen bukti dukung (misal: SK Rektor No..., Upload 45 skripsi selesai, dll)..." class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-peradaban-navy"></textarea>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2.5 justify-between items-stretch sm:items-center">
+                        <input type="text" id="log-evidence-input" placeholder="Link / Nomor Dokumen Bukti (Opsional)" class="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-peradaban-navy">
+                        <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-peradaban-navy font-bold text-xs rounded-xl shadow-sm transition-colors whitespace-nowrap">
+                            + Simpan Catatan Log
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Log History List -->
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Riwayat Log Aktivitas & Realisasi (<span id="log-count">0</span>)</h4>
+                    <div id="log-history-list" class="space-y-2.5">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: KONFIRMASI HAPUS / RESET (Custom Modal, No window.confirm) -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
+            <div class="flex items-center gap-3 text-rose-600 mb-3">
+                <div class="p-2.5 bg-rose-100 rounded-xl">
+                    <i data-lucide="alert-circle" class="w-6 h-6"></i>
+                </div>
+                <h3 id="confirm-title" class="font-display font-bold text-lg text-slate-900">Konfirmasi Tindakan</h3>
+            </div>
+            <p id="confirm-message" class="text-sm text-slate-600 leading-relaxed mb-6">Apakah Anda yakin ingin melanjutkan tindakan ini?</p>
+            <div class="flex justify-end gap-2.5">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100">Batal</button>
+                <button id="confirm-action-btn" class="px-4 py-2 rounded-xl text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. DATA INITIALIZATION (18 TUGAS UTAMA)
+        // ==========================================
+        const STORAGE_KEY = 'simonika_peradaban_tasks_v1';
+
+        // Helper to get dynamic relative dates so reminders look realistic out-of-the-box
+        function getRelativeDate(daysOffset) {
+            const d = new Date();
+            d.setDate(d.getDate() + daysOffset);
+            return d.toISOString().split('T')[0];
+        }
+
+        const DEFAULT_TASKS = [
+            {
+                id: 1,
+                title: "Membuat Rencana Strategis (Renstra) Perpustakaan",
+                category: "Perencanaan & Kebijakan",
+                frequency: "Tahunan",
+                status: "Selesai",
+                deadline: getRelativeDate(45),
+                description: "Penyusunan dokumen Renstra Perpustakaan Universitas Peradaban 5 tahunan yang selaras dengan visi misi universitas.",
+                logs: [
+                    { id: 101, date: "2026-02-15", note: "Draft Renstra disahkan bersama Rektorat dan Senat Akademik.", evidence: "Dokumen Renstra UPT Perpustakaan 2026-2030" }
+                ]
+            },
+            {
+                id: 2,
+                title: "Membuat Rencana Kerja Tahunan Perpustakaan",
+                category: "Perencanaan & Kebijakan",
+                frequency: "Tahunan",
+                status: "Selesai",
+                deadline: getRelativeDate(30),
+                description: "Penjabaran program kerja operasional, anggaran, dan target indikator kinerja utama tahun berjalan.",
+                logs: [
+                    { id: 102, date: "2026-03-01", note: "Rencana Kerja & Anggaran Tahunan telah disetujui.", evidence: "RKT-PERPUS-2026.pdf" }
+                ]
+            },
+            {
+                id: 3,
+                title: "Membuat Kebijakan Pengembangan Koleksi",
+                category: "Perencanaan & Kebijakan",
+                frequency: "Tahunan",
+                status: "Dalam Proses",
+                deadline: getRelativeDate(12),
+                description: "Pedoman seleksi, pengadaan, penyiangan (weeding), dan pelestarian bahan pustaka cetak maupun digital.",
+                logs: [
+                    { id: 103, date: "2026-10-10", note: "Revisi rasio koleksi cetak dan e-book sesuai standar akreditasi LAM/BAN-PT.", evidence: "Draft SK Kebijakan Koleksi" }
+                ]
+            },
+            {
+                id: 4,
+                title: "Membuat SOP di Bidang Perpustakaan",
+                category: "Perencanaan & Kebijakan",
+                frequency: "Tahunan",
+                status: "Dalam Proses",
+                deadline: getRelativeDate(5), // Urgent (< 7 days)
+                description: "Penyusunan dan pemutakhiran Standard Operating Procedure layanan sirkulasi, pengolahan, repository, dan bebas pustaka.",
+                logs: [
+                    { id: 104, date: "2026-11-05", note: "Finalisasi 12 SOP Layanan & Teknis Perpustakaan.", evidence: "SOP-UPT-Perpus-v2" }
+                ]
+            },
+            {
+                id: 5,
+                title: "Membuat Sistem Manajemen Perpustakaan berbasis SLiMS dan memastikan berjalan",
+                category: "Sistem & Teknologi",
+                frequency: "Bulanan",
+                status: "Selesai",
+                deadline: getRelativeDate(15),
+                description: "Implementasi, konfigurasi OPAC, keanggotaan, sirkulasi, dan backup database SLiMS secara berkala.",
+                logs: [
+                    { id: 105, date: "2026-11-01", note: "Upgrade SLiMS ke versi terbaru dan optimasi server OPAC berjalan lancar.", evidence: "opac.peradaban.ac.id" }
+                ]
+            },
+            {
+                id: 6,
+                title: "Membuat Sistem Repository berbasis Eprints dan memastikan berjalan dengan baik",
+                category: "Sistem & Teknologi",
+                frequency: "Bulanan",
+                status: "Selesai",
+                deadline: getRelativeDate(20),
+                description: "Pengelolaan server Eprints untuk publikasi karya ilmiah dosen, skripsi, tesis, dan laporan penelitian.",
+                logs: [
+                    { id: 106, date: "2026-11-03", note: "Indexing OAI-PMH Garuda & Google Scholar terpantau aktif tanpa error.", evidence: "repository.peradaban.ac.id" }
+                ]
+            },
+            {
+                id: 7,
+                title: "Mengelola Media Sosial Perpustakaan (Instagram, Facebook, TikTok, YouTube) dan memastikan berjalan lancar",
+                category: "Layanan & Koleksi",
+                frequency: "Mingguan",
+                status: "Dalam Proses",
+                deadline: getRelativeDate(2), // Urgent
+                description: "Publikasi konten literasi, informasi buku baru, panduan layanan, dan dokumentasi kegiatan perpustakaan.",
+                logs: [
+                    { id: 107, date: "2026-11-14", note: "Upload konten Reels info buku baru dan tutorial akses E-Library Kubuku.", evidence: "@perpus.peradaban" }
+                ]
+            },
+            {
+                id: 8,
+                title: "Mengawasi dan memastikan proses pelayanan perpustakaan berjalan dengan baik",
+                category: "Layanan & Koleksi",
+                frequency: "Harian",
+                status: "Dalam Proses",
+                deadline: getRelativeDate(1), // Urgent
+                description: "Supervisi harian layanan sirkulasi, ruang baca, referensi, dan kedisiplinan jam operasional.",
+                logs: [
+                    { id: 108, date: "2026-11-18", note: "Layanan sirkulasi dan ruang baca kondusif, rata-rata kunjungan 145 pemustaka/hari.", evidence: "Buku Log Kunjungan Harian" }
+                ]
+            },
+            {
+                id: 9,
+                title: "Mereview dan memastikan file skripsi diupload dan sesuai dengan ketentuan yang ada",
+                category: "Layanan & Koleksi",
+                frequency: "Mingguan",
+                status: "Dalam Proses",
+                deadline: getRelativeDate(-1), // Overdue!
+                description: "Verifikasi kelengkapan bab, lembar pengesahan, watermark, dan metadata unggahan mandiri skripsi mahasiswa.",
+                logs: [
+                    { id: 109, date: "2026-11-12", note: "Telah mereview 28 berkas skripsi periode wisuda, 3 dikembalikan untuk perbaikan format.", evidence: "Dashboard Admin Eprints" }
+                ]
+            },
+            {
+                id: 110,
+                title: "Mereview dan memastikan data koleksi diupload ke SLiMS dengan benar",
+                category: "Layanan & Koleksi",
+                frequency: "Mingguan",
+                status: "Dalam Proses",
+                deadline: getRelativeDate(4),
+                description: "Quality control katalogisasi (DDC, tajuk subjek, nomor panggil, barcode eksemplar) pada database SLiMS.",
+                logs: [
+                    { id: 110, date: "2026-11-10", note: "Validasi 120 eksemplar buku hibah dan pembelian baru telah terinput sesuai standar AACR2/RDA.", evidence: "Laporan Bibliografi SLiMS" }
+                ]
+            },
+            {
+                id: 11,
+                title: "Melayani permintaan koleksi repository",
+                category: "Layanan & Koleksi",
+                frequency: "Harian",
+                status: "Selesai",
+                deadline: getRelativeDate(7),
+                description: "Pemberian akses full-text dokumen repository bagi sivitas akademika sesuai ketentuan hak cipta.",
+                logs: [
+                    { id: 111, date: "2026-11-17", note: "Seluruh permohonan akses referensi tugas akhir mahasiswa bulan ini telah dilayani 100%.", evidence: "Log Permintaan Email Perpus" }
+                ]
+            },
+            {
+                id: 12,
+                title: "Memberikan sosialisasi perpustakaan untuk mahasiswa baru",
+                category: "Layanan & Koleksi",
+                frequency: "Tahunan",
+                status: "Selesai",
+                deadline: getRelativeDate(60),
+                description: "User education / pengenalan fasilitas, penelusuran OPAC, Eprints, dan E-Library pada kegiatan PKKMB.",
+                logs: [
+                    { id: 112, date: "2026-09-12", note: "Sosialisasi terlaksana kepada 850+ mahasiswa baru seluruh fakultas.", evidence: "Berita Acara & Daftar Hadir PKKMB" }
+                ]
+            },
+            {
+                id: 13,
+                title: "Membuat dan melaksanakan survey kebutuhan koleksi",
+                category: "Riset & Evaluasi",
+                frequency: "Semesteran",
+                status: "Selesai",
+                deadline: getRelativeDate(25),
+                description: "Penyebaran kuesioner usulan buku/jurnal kepada dosen dan mahasiswa tiap program studi.",
+                logs: [
+                    { id: 113, date: "2026-10-20", note: "Terkumpul 310 judul usulan buku dari 11 Prodi sebagai dasar pengadaan.", evidence: "Rekap Survey Kebutuhan Koleksi" }
+                ]
+            },
+            {
+                id: 14,
+                title: "Membuat, merancang dan melaksanakan survey kepuasaan pengguna/pengunjung perpustakaan",
+                category: "Riset & Evaluasi",
+                frequency: "Semesteran",
+                status: "Dalam Proses",
+                deadline: getRelativeDate(6),
+                description: "Pengukuran Indeks Kepuasan Pemustaka (IKM) terhadap layanan, fasilitas, koleksi, dan staf perpustakaan.",
+                logs: [
+                    { id: 114, date: "2026-11-15", note: "Kuesioner online aktif disebar melalui QR Code meja sirkulasi, terkumpul 240 responden.", evidence: "Form Survey IKM 2026" }
+                ]
+            },
+            {
+                id: 15,
+                title: "Melakukan proses pengadaan koleksi",
+                category: "Layanan & Koleksi",
+                frequency: "Semesteran",
+                status: "Dalam Proses",
+                deadline: getRelativeDate(10),
+                description: "Proses seleksi vendor, pemesanan, penerimaan, dan inventarisasi buku baru hasil survey kebutuhan.",
+                logs: [
+                    { id: 115, date: "2026-11-08", note: "Proses pengadaan 250 judul buku referensi prodi tahap II sedang dalam pengiriman penerbit.", evidence: "PO Pengadaan Buku Tahap II" }
+                ]
+            },
+            {
+                id: 16,
+                title: "Memastikan proses layanan perpustakaan dan aplikasi SLiMS berjalan dan tidak ada masalah",
+                category: "Sistem & Teknologi",
+                frequency: "Harian",
+                status: "Selesai",
+                deadline: getRelativeDate(3),
+                description: "Monitoring stabilitas jaringan lokal, barcode scanner, komputer sirkulasi, dan server SLiMS.",
+                logs: [
+                    { id: 116, date: "2026-11-18", note: "Pengecekan rutin jaringan dan sistem sirkulasi SLiMS berjalan normal tanpa downtime.", evidence: "Checklist Maintenance Harian" }
+                ]
+            },
+            {
+                id: 17,
+                title: "Memastikan aplikasi E-Library dari Kubuku berjalan",
+                category: "Sistem & Teknologi",
+                frequency: "Bulanan",
+                status: "Selesai",
+                deadline: getRelativeDate(14),
+                description: "Monitoring lisensi, aktivasi akun sivitas akademika, serta ketersediaan koleksi digital pada aplikasi E-Library Kubuku.",
+                logs: [
+                    { id: 117, date: "2026-11-04", note: "Aplikasi Kubuku Perpustakaan Universitas Peradaban aktif digunakan pada Android & Desktop.", evidence: "Laporan Statistik Baca Kubuku" }
+                ]
+            },
+            {
+                id: 18,
+                title: "Membuat Laporan Tahunan Perpustakaan",
+                category: "Laporan",
+                frequency: "Tahunan",
+                status: "Belum Dikerjakan",
+                deadline: getRelativeDate(18),
+                description: "Penyusunan laporan pertanggungjawaban kinerja, statistik koleksi, kunjungan, dan keuangan perpustakaan akhir tahun.",
+                logs: []
+            }
+        ];
+
+        // State
+        let tasks = [];
+        let activeTab = 'dashboard';
+
+        // ==========================================
+        // 2. STORAGE & CORE UTILITIES
+        // ==========================================
+        function loadTasks() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    tasks = JSON.parse(saved);
+                } catch (e) {
+                    tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+                }
+            } else {
+                tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+                saveToStorage();
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+            updateAllViews();
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-peradaban-navy text-white border-amber-400' : 'bg-rose-600 text-white border-rose-300';
+            const iconName = type === 'success' ? 'check-circle' : 'alert-circle';
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border-l-4 text-xs font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
+            toast.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 text-amber-400 flex-shrink-0"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Check Deadline Urgency
+        function getDeadlineStatus(task) {
+            if (task.status === 'Selesai') {
+                return { isUrgent: false, isOverdue: false, daysLeft: null, label: 'Tuntas', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+            }
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const due = new Date(task.deadline);
+            due.setHours(0, 0, 0, 0);
+            
+            const diffTime = due - today;
+            const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (daysLeft < 0) {
+                return { 
+                    isUrgent: true, 
+                    isOverdue: true, 
+                    daysLeft, 
+                    label: `Terlambat ${Math.abs(daysLeft)} hari`, 
+                    badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse' 
+                };
+            } else if (daysLeft === 0) {
+                return { 
+                    isUrgent: true, 
+                    isOverdue: false, 
+                    daysLeft: 0, 
+                    label: 'Tenggat Hari Ini!', 
+                    badgeClass: 'bg-rose-100 text-rose-700 border-rose-300' 
+                };
+            } else if (daysLeft <= 7) {
+                return { 
+                    isUrgent: true, 
+                    isOverdue: false, 
+                    daysLeft, 
+                    label: `${daysLeft} hari lagi`, 
+                    badgeClass: 'bg-amber-100 text-amber-800 border-amber-300' 
+                };
+            } else {
+                return { 
+                    isUrgent: false, 
+                    isOverdue: false, 
+                    daysLeft, 
+                    label: `${daysLeft} hari lagi`, 
+                    badgeClass: 'bg-slate-100 text-slate-600 border-slate-200' 
+                };
+            }
+        }
+
+        function formatDateIndo(dateStr) {
+            if (!dateStr) return '-';
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            return new Date(dateStr).toLocaleDateString('id-ID', options);
+        }
+
+        function getCategoryBadgeStyle(category) {
+            const map = {
+                'Perencanaan & Kebijakan': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                'Sistem & Teknologi': 'bg-sky-50 text-sky-700 border-sky-200',
+                'Layanan & Koleksi': 'bg-amber-50 text-amber-800 border-amber-200',
+                'Riset & Evaluasi': 'bg-purple-50 text-purple-700 border-purple-200',
+                'Laporan': 'bg-teal-50 text-teal-700 border-teal-200'
+            };
+            return map[category] || 'bg-slate-100 text-slate-700 border-slate-200';
+        }
+
+        function getStatusBadgeStyle(status) {
+            if (status === 'Selesai') return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+            if (status === 'Dalam Proses') return 'bg-amber-100 text-amber-800 border-amber-300';
+            return 'bg-slate-100 text-slate-700 border-slate-300';
+        }
+
+        // ==========================================
+        // 3. NAVIGATION & VIEW SWITCHING
+        // ==========================================
+        function switchTab(tabName) {
+            activeTab = tabName;
+            
+            // Hide all sections
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-tasks').classList.add('hidden');
+            document.getElementById('view-report').classList.add('hidden');
+
+            // Reset nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-amber-500', 'text-peradaban-navy', 'font-semibold', 'shadow-md');
+                btn.classList.add('text-slate-300', 'hover:bg-white/10', 'hover:text-white');
+            });
+
+            // Activate selected
+            const activeBtn = document.getElementById(`nav-${tabName}`);
+            activeBtn.classList.remove('text-slate-300', 'hover:bg-white/10', 'hover:text-white');
+            activeBtn.classList.add('bg-amber-500', 'text-peradaban-navy', 'font-semibold', 'shadow-md');
+
+            const titleEl = document.getElementById('page-title');
+            const subEl = document.getElementById('page-subtitle');
+
+            if (tabName === 'dashboard') {
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                titleEl.textContent = 'Dashboard & Analitik Kinerja';
+                subEl.textContent = 'Monitoring real-time program kerja strategis & operasional UPT Perpustakaan';
+                renderDashboard();
+            } else if (tabName === 'tasks') {
+                document.getElementById('view-tasks').classList.remove('hidden');
+                titleEl.textContent = 'Daftar Tugas Utama & Pengingat';
+                subEl.textContent = 'Kelola status pelaksanaan, tenggat waktu, dan catatan bukti dukung';
+                renderTasks();
+            } else if (tabName === 'report') {
+                document.getElementById('view-report').classList.remove('hidden');
+                titleEl.textContent = 'Laporan Tahunan Kepala Perpustakaan';
+                subEl.textContent = 'Format siap cetak & ekspor PDF untuk pertanggungjawaban Rektorat';
+                renderAnnualReport();
+            }
+            lucide.createIcons();
+        }
+
+        function updateAllViews() {
+            renderDashboard();
+            renderTasks();
+            renderAnnualReport();
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // 4. RENDER DASHBOARD
+        // ==========================================
+        function renderDashboard() {
+            const total = tasks.length;
+            const done = tasks.filter(t => t.status === 'Selesai').length;
+            const progress = tasks.filter(t => t.status === 'Dalam Proses').length;
+            const todo = tasks.filter(t => t.status === 'Belum Dikerjakan').length;
+            const urgentTasks = tasks.filter(t => getDeadlineStatus(t).isUrgent);
+
+            const completionPct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+            // Update KPI numbers
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-done').textContent = done;
+            document.getElementById('stat-progress').textContent = progress;
+            document.getElementById('stat-urgent').textContent = urgentTasks.length;
+            document.getElementById('stat-todo').textContent = todo;
+            document.getElementById('stat-completion-rate').textContent = `${completionPct}%`;
+
+            document.getElementById('bar-done').style.width = `${total ? (done / total) * 100 : 0}%`;
+            document.getElementById('bar-progress').style.width = `${total ? (progress / total) * 100 : 0}%`;
+
+            // Sidebar Urgent Badge & Top Banner
+            const sidebarBadge = document.getElementById('sidebar-urgent-badge');
+            const urgentBanner = document.getElementById('urgent-banner');
+            if (urgentTasks.length > 0) {
+                sidebarBadge.textContent = urgentTasks.length;
+                sidebarBadge.classList.remove('hidden');
+                urgentBanner.classList.remove('hidden');
+                document.getElementById('urgent-banner-text').textContent = `Terdapat ${urgentTasks.length} tugas utama yang mendekati batas waktu (≤ 7 hari) atau melewati tenggat.`;
+            } else {
+                sidebarBadge.classList.add('hidden');
+                urgentBanner.classList.add('hidden');
+            }
+
+            // Category Breakdown
+            const categories = [
+                "Perencanaan & Kebijakan",
+                "Sistem & Teknologi",
+                "Layanan & Koleksi",
+                "Riset & Evaluasi",
+                "Laporan"
+            ];
+
+            const catContainer = document.getElementById('category-progress-list');
+            catContainer.innerHTML = categories.map(cat => {
+                const catTasks = tasks.filter(t => t.category === cat);
+                const catDone = catTasks.filter(t => t.status === 'Selesai').length;
+                const catProg = catTasks.filter(t => t.status === 'Dalam Proses').length;
+                const pct = catTasks.length > 0 ? Math.round((catDone / catTasks.length) * 100) : 0;
+
+                return `
+                    <div class="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+                        <div class="flex items-center justify-between text-xs mb-1.5">
+                            <span class="font-bold text-slate-800">${cat}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-500">${catDone}/${catTasks.length} Selesai (${catProg} Proses)</span>
+                                <span class="font-extrabold text-peradaban-navy">${pct}%</span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div class="bg-gradient-to-r from-peradaban-navy to-blue-600 h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Upcoming Deadlines List (Non-completed sorted by nearest deadline)
+            const upcoming = tasks
+                .filter(t => t.status !== 'Selesai')
+                .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+                .slice(0, 5);
+
+            const deadlineContainer = document.getElementById('upcoming-deadlines-list');
+            if (upcoming.length === 0) {
+                deadlineContainer.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">Semua tugas telah selesai! 🎉</div>`;
+            } else {
+                deadlineContainer.innerHTML = upcoming.map(t => {
+                    const dl = getDeadlineStatus(t);
+                    return `
+                        <div onclick="openLogModal(${t.id})" class="cursor-pointer p-3 rounded-xl border border-slate-100 hover:border-peradaban-navy/30 bg-slate-50/60 hover:bg-blue-50/40 transition-all">
+                            <div class="flex items-center justify-between gap-2 mb-1">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md border ${dl.badgeClass}">${dl.label}</span>
+                                <span class="text-[11px] text-slate-400 font-medium">${formatDateIndo(t.deadline)}</span>
+                            </div>
+                            <p class="text-xs font-semibold text-slate-800 line-clamp-2">${t.title}</p>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Recent Activity Logs
+            const allLogs = [];
+            tasks.forEach(t => {
+                (t.logs || []).forEach(l => {
+                    allLogs.push({ ...l, taskTitle: t.title, taskId: t.id, category: t.category });
+                });
+            });
+            allLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const recentLogsContainer = document.getElementById('recent-logs-container');
+            if (allLogs.length === 0) {
+                recentLogsContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">Belum ada catatan aktivitas yang direkam.</p>`;
+            } else {
+                recentLogsContainer.innerHTML = allLogs.slice(0, 4).map(log => `
+                    <div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="space-y-0.5">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-bold text-peradaban-navy">${log.taskTitle}</span>
+                            </div>
+                            <p class="text-xs text-slate-600">${log.note}</p>
+                            ${log.evidence ? `<span class="inline-flex items-center gap-1 text-[11px] text-amber-700 font-medium"><i data-lucide="paperclip" class="w-3 h-3"></i> ${log.evidence}</span>` : ''}
+                        </div>
+                        <span class="text-[11px] text-slate-400 whitespace-nowrap">${formatDateIndo(log.date)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function filterUrgentTasks() {
+            switchTab('tasks');
+            document.getElementById('filter-status').value = 'URGENT';
+            renderTasks();
+        }
+
+        // ==========================================
+        // 5. RENDER TASKS LIST & FILTERING
+        // ==========================================
+        function setQuickStatus(status) {
+            document.getElementById('filter-status').value = status;
+            renderTasks();
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-category').value = 'ALL';
+            document.getElementById('filter-frequency').value = 'ALL';
+            document.getElementById('filter-status').value = 'ALL';
+            renderTasks();
+        }
+
+        function renderTasks() {
+            const search = document.getElementById('filter-search').value.toLowerCase();
+            const catFilter = document.getElementById('filter-category').value;
+            const freqFilter = document.getElementById('filter-frequency').value;
+            const statusFilter = document.getElementById('filter-status').value;
+
+            // Update quick filter counters
+            document.getElementById('count-all').textContent = tasks.length;
+            document.getElementById('count-urgent').textContent = tasks.filter(t => getDeadlineStatus(t).isUrgent).length;
+            document.getElementById('count-progress').textContent = tasks.filter(t => t.status === 'Dalam Proses').length;
+            document.getElementById('count-done').textContent = tasks.filter(t => t.status === 'Selesai').length;
+
+            const filtered = tasks.filter(t => {
+                const matchSearch = t.title.toLowerCase().includes(search) || (t.description && t.description.toLowerCase().includes(search));
+                const matchCat = catFilter === 'ALL' || t.category === catFilter;
+                const matchFreq = freqFilter === 'ALL' || t.frequency === freqFilter;
+                
+                let matchStatus = true;
+                if (statusFilter === 'URGENT') {
+                    matchStatus = getDeadlineStatus(t).isUrgent;
+                } else if (statusFilter !== 'ALL') {
+                    matchStatus = t.status === statusFilter;
+                }
+
+                return matchSearch && matchCat && matchFreq && matchStatus;
+            });
+
+            document.getElementById('showing-count-text').textContent = `Menampilkan ${filtered.length} dari ${tasks.length} tugas`;
+
+            const container = document.getElementById('tasks-list-container');
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-10 border border-slate-200 text-center">
+                        <i data-lucide="folder-search" class="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
+                        <h4 class="text-sm font-bold text-slate-700">Tidak ada tugas yang sesuai filter</h4>
+                        <p class="text-xs text-slate-500 mt-1">Coba ubah kata kunci pencarian atau reset filter di atas.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = filtered.map((task, idx) => {
+                const dl = getDeadlineStatus(task);
+                const logCount = (task.logs || []).length;
+                const borderAccent = dl.isOverdue ? 'border-l-4 border-l-rose-500' : (dl.isUrgent ? 'border-l-4 border-l-amber-500' : (task.status === 'Selesai' ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-peradaban-navy'));
+
+                return `
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200/90 ${borderAccent} shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4">
+                        <div>
+                            <!-- Top Badges -->
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-lg border ${getCategoryBadgeStyle(task.category)}">${task.category}</span>
+                                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600">${task.frequency}</span>
+                                </div>
+                                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${dl.badgeClass}">
+                                    ${dl.label}
+                                </span>
+                            </div>
+
+                            <!-- Title & Description -->
+                            <h4 class="font-display font-bold text-sm sm:text-base text-slate-900 leading-snug mb-1.5">${task.title}</h4>
+                            <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">${task.description || 'Tidak ada deskripsi tambahan.'}</p>
+                        </div>
+
+                        <!-- Bottom Controls -->
+                        <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                            <!-- Inline Status Selector -->
+                            <div class="flex items-center gap-2">
+                                <select onchange="quickChangeStatus(${task.id}, this.value)" class="text-xs font-bold px-2.5 py-1.5 rounded-lg border cursor-pointer focus:outline-none ${getStatusBadgeStyle(task.status)}">
+                                    <option value="Belum Dikerjakan" ${task.status === 'Belum Dikerjakan' ? 'selected' : ''}>Belum Dikerjakan</option>
+                                    <option value="Dalam Proses" ${task.status === 'Dalam Proses' ? 'selected' : ''}>Dalam Proses</option>
+                                    <option value="Selesai" ${task.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                                </select>
+                                <span class="text-[11px] text-slate-400 hidden sm:inline">Tenggat: ${formatDateIndo(task.deadline)}</span>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="openLogModal(${task.id})" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-peradaban-light hover:bg-blue-100 text-peradaban-navy text-xs font-semibold transition-colors" title="Catat Log & Bukti Dukung">
+                                    <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
+                                    <span>Log (${logCount})</span>
+                                </button>
+                                <button onclick="openTaskModal(${task.id})" class="p-1.5 rounded-lg text-slate-400 hover:text-peradaban-navy hover:bg-slate-100 transition-colors" title="Edit Tugas">
+                                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="confirmDeleteTask(${task.id})" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Hapus Tugas">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function quickChangeStatus(id, newStatus) {
+            const idx = tasks.findIndex(t => t.id === id);
+            if (idx !== -1) {
+                tasks[idx].status = newStatus;
+                saveToStorage();
+                showToast(`Status diperbarui menjadi "${newStatus}"`);
+            }
+        }
+
+        // ==========================================
+        // 6. TASK CRUD MODAL
+        // ==========================================
+        function openTaskModal(taskId = null) {
+            const modal = document.getElementById('task-modal');
+            const titleEl = document.getElementById('task-modal-title');
+            const form = document.getElementById('task-form');
+            form.reset();
+
+            if (taskId) {
+                const task = tasks.find(t => t.id === taskId);
+                if (!task) return;
+                titleEl.textContent = 'Edit Tugas Perpustakaan';
+                document.getElementById('task-id').value = task.id;
+                document.getElementById('task-title').value = task.title;
+                document.getElementById('task-category').value = task.category;
+                document.getElementById('task-frequency').value = task.frequency;
+                document.getElementById('task-status').value = task.status;
+                document.getElementById('task-deadline').value = task.deadline;
+                document.getElementById('task-desc').value = task.description || '';
+            } else {
+                titleEl.textContent = 'Tambah Tugas Baru';
+                document.getElementById('task-id').value = '';
+                document.getElementById('task-deadline').value = getRelativeDate(14);
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('task-modal').classList.add('hidden');
+        }
+
+        function saveTask(e) {
+            e.preventDefault();
+            const idVal = document.getElementById('task-id').value;
+            const title = document.getElementById('task-title').value.trim();
+            const category = document.getElementById('task-category').value;
+            const frequency = document.getElementById('task-frequency').value;
+            const status = document.getElementById('task-status').value;
+            const deadline = document.getElementById('task-deadline').value;
+            const description = document.getElementById('task-desc').value.trim();
+
+            if (idVal) {
+                const idx = tasks.findIndex(t => t.id === Number(idVal));
+                if (idx !== -1) {
+                    tasks[idx] = { ...tasks[idx], title, category, frequency, status, deadline, description };
+                    showToast('Perubahan tugas berhasil disimpan');
+                }
+            } else {
+                const newTask = {
+                    id: Date.now(),
+                    title,
+                    category,
+                    frequency,
+                    status,
+                    deadline,
+                    description,
+                    logs: []
+                };
+                tasks.unshift(newTask);
+                showToast('Tugas baru berhasil ditambahkan');
+            }
+
+            closeTaskModal();
+            saveToStorage();
+        }
+
+        function confirmDeleteTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            document.getElementById('confirm-title').textContent = 'Hapus Tugas?';
+            document.getElementById('confirm-message').textContent = `Anda akan menghapus tugas "${task.title}" beserta seluruh riwayat log aktivitasnya.`;
+            
+            const actionBtn = document.getElementById('confirm-action-btn');
+            actionBtn.onclick = () => {
+                tasks = tasks.filter(t => t.id !== id);
+                saveToStorage();
+                closeConfirmModal();
+                showToast('Tugas telah dihapus', 'error');
+            };
+
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function openResetModal() {
+            document.getElementById('confirm-title').textContent = 'Reset ke 18 Tugas Bawaan?';
+            document.getElementById('confirm-message').textContent = 'Semua perubahan kustom akan dikembalikan ke daftar 18 tugas standar Kepala Perpustakaan Universitas Peradaban.';
+            
+            const actionBtn = document.getElementById('confirm-action-btn');
+            actionBtn.onclick = () => {
+                tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+                saveToStorage();
+                closeConfirmModal();
+                showToast('Data dikembalikan ke 18 tugas standar');
+            };
+
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        // ==========================================
+        // 7. LOG AKTIVITAS & BUKTI DUKUNG MODAL
+        // ==========================================
+        function openLogModal(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            document.getElementById('log-task-id').value = task.id;
+            document.getElementById('log-modal-category').textContent = `${task.category} • Siklus ${task.frequency}`;
+            document.getElementById('log-modal-title').textContent = task.title;
+            document.getElementById('log-modal-deadline').textContent = formatDateIndo(task.deadline);
+
+            renderLogModalContent(task);
+            document.getElementById('log-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeLogModal() {
+            document.getElementById('log-modal').classList.add('hidden');
+        }
+
+        function renderLogModalContent(task) {
+            // Render status toggle buttons inside modal
+            const statuses = ['Belum Dikerjakan', 'Dalam Proses', 'Selesai'];
+            const btnContainer = document.getElementById('log-status-buttons');
+            btnContainer.innerHTML = statuses.map(st => {
+                const isActive = task.status === st;
+                const activeClass = isActive 
+                    ? 'bg-peradaban-navy text-white border-peradaban-navy shadow-sm' 
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100';
+                return `<button type="button" onclick="updateStatusFromModal(${task.id}, '${st}')" class="px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${activeClass}">${st}</button>`;
+            }).join('');
+
+            // Render log history
+            const logs = task.logs || [];
+            document.getElementById('log-count').textContent = logs.length;
+            const listEl = document.getElementById('log-history-list');
+
+            if (logs.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400">Belum ada catatan log aktivitas atau bukti dukung untuk tugas ini.</div>`;
+            } else {
+                listEl.innerHTML = logs.map(l => `
+                    <div class="p-3.5 rounded-xl bg-white border border-slate-200 flex items-start justify-between gap-3">
+                        <div class="space-y-1">
+                            <span class="text-[11px] font-bold text-slate-400 block">${formatDateIndo(l.date)}</span>
+                            <p class="text-xs text-slate-800 leading-relaxed">${l.note}</p>
+                            ${l.evidence ? `<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 text-[11px] font-medium mt-1"><i data-lucide="file-check" class="w-3.5 h-3.5"></i><span>${l.evidence}</span></div>` : ''}
+                        </div>
+                        <button onclick="deleteActivityLog(${task.id}, ${l.id})" class="text-slate-300 hover:text-rose-500 p-1" title="Hapus Log">
+                            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+        }
+
+        function updateStatusFromModal(taskId, newStatus) {
+            const idx = tasks.findIndex(t => t.id === taskId);
+            if (idx !== -1) {
+                tasks[idx].status = newStatus;
+                saveToStorage();
+                renderLogModalContent(tasks[idx]);
+                showToast(`Status diubah ke "${newStatus}"`);
+            }
+        }
+
+        function addActivityLog(e) {
+            e.preventDefault();
+            const taskId = Number(document.getElementById('log-task-id').value);
+            const note = document.getElementById('log-note-input').value.trim();
+            const evidence = document.getElementById('log-evidence-input').value.trim();
+
+            const idx = tasks.findIndex(t => t.id === taskId);
+            if (idx !== -1 && note) {
+                if (!tasks[idx].logs) tasks[idx].logs = [];
+                tasks[idx].logs.unshift({
+                    id: Date.now(),
+                    date: new Date().toISOString().split('T')[0],
+                    note,
+                    evidence
+                });
+
+                // Automatically move from 'Belum Dikerjakan' to 'Dalam Proses' if log added
+                if (tasks[idx].status === 'Belum Dikerjakan') {
+                    tasks[idx].status = 'Dalam Proses';
+                }
+
+                document.getElementById('log-note-input').value = '';
+                document.getElementById('log-evidence-input').value = '';
+                
+                saveToStorage();
+                renderLogModalContent(tasks[idx]);
+                showToast('Log aktivitas & bukti dukung tersimpan');
+            }
+        }
+
+        function deleteActivityLog(taskId, logId) {
+            const idx = tasks.findIndex(t => t.id === taskId);
+            if (idx !== -1) {
+                tasks[idx].logs = tasks[idx].logs.filter(l => l.id !== logId);
+                saveToStorage();
+                renderLogModalContent(tasks[idx]);
+                showToast('Catatan log dihapus', 'error');
+            }
+        }
+
+        // ==========================================
+        // 8. GENERATE ANNUAL REPORT (LAPORAN TAHUNAN)
+        // ==========================================
+        function renderAnnualReport() {
+            const year = document.getElementById('report-year-input').value || new Date().getFullYear();
+            document.getElementById('doc-year-title').textContent = year;
+
+            const total = tasks.length;
+            const done = tasks.filter(t => t.status === 'Selesai').length;
+            const progress = tasks.filter(t => t.status === 'Dalam Proses').length;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+            document.getElementById('doc-stat-total').textContent = total;
+            document.getElementById('doc-stat-done').textContent = done;
+            document.getElementById('doc-stat-progress').textContent = progress;
+            document.getElementById('doc-stat-percent').textContent = `${pct}%`;
+
+            // Executive Summary Paragraph
+            document.getElementById('doc-executive-summary').innerHTML = `
+                Laporan ini merupakan bentuk pertanggungjawaban kinerja Kepala Unit Pelaksana Teknis (UPT) Perpustakaan Universitas Peradaban selama periode tahun <strong>${year}</strong>. 
+                Dari total <strong>${total} program kerja utama</strong> yang meliputi aspek perencanaan kebijakan, pengelolaan sistem informasi perpustakaan (SLiMS, Eprints, dan E-Library Kubuku), layanan sirkulasi & koleksi, publikasi media sosial, serta evaluasi kepuasan pemustaka, tercatat sebanyak <strong>${done} program kerja (${pct}%)</strong> telah terlaksana secara tuntas, dan <strong>${progress} program kerja</strong> sedang dalam tahap pelaksanaan berkelanjutan.
+            `;
+
+            // Category Table
+            const categories = [
+                "Perencanaan & Kebijakan",
+                "Sistem & Teknologi",
+                "Layanan & Koleksi",
+                "Riset & Evaluasi",
+                "Laporan"
+            ];
+
+            document.getElementById('doc-category-table').innerHTML = categories.map(cat => {
+                const cTasks = tasks.filter(t => t.category === cat);
+                const cDone = cTasks.filter(t => t.status === 'Selesai').length;
+                const cProg = cTasks.filter(t => t.status === 'Dalam Proses').length;
+                const cTodo = cTasks.filter(t => t.status === 'Belum Dikerjakan').length;
+                const cPct = cTasks.length > 0 ? Math.round((cDone / cTasks.length) * 100) : 0;
+
+                return `
+                    <tr>
+                        <td class="p-2.5 border border-slate-300 font-semibold text-slate-800">${cat}</td>
+                        <td class="p-2.5 border border-slate-300 text-center">${cTasks.length}</td>
+                        <td class="p-2.5 border border-slate-300 text-center text-emerald-700 font-bold">${cDone}</td>
+                        <td class="p-2.5 border border-slate-300 text-center text-amber-700">${cProg}</td>
+                        <td class="p-2.5 border border-slate-300 text-center text-slate-500">${cTodo}</td>
+                        <td class="p-2.5 border border-slate-300 text-right font-bold text-peradaban-navy">${cPct}%</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Detailed Matrix Table
+            document.getElementById('doc-tasks-table').innerHTML = tasks.map((t, index) => {
+                const logsHtml = (t.logs && t.logs.length > 0)
+                    ? `<ul class="list-disc pl-4 space-y-1">
+                        ${t.logs.map(l => `<li><span class="font-semibold">[${formatDateIndo(l.date)}]</span> ${l.note} ${l.evidence ? `<em class="text-slate-500">(Bukti: ${l.evidence})</em>` : ''}</li>`).join('')}
+                       </ul>`
+                    : `<span class="text-slate-400 italic">Belum ada catatan realisasi tertulis.</span>`;
+
+                const statusColor = t.status === 'Selesai' ? 'text-emerald-700 font-bold' : (t.status === 'Dalam Proses' ? 'text-amber-700 font-semibold' : 'text-slate-500');
+
+                return `
+                    <tr class="align-top">
+                        <td class="p-2.5 border border-slate-300 text-center font-medium">${index + 1}</td>
+                        <td class="p-2.5 border border-slate-300 font-semibold text-slate-900">${t.title}</td>
+                        <td class="p-2.5 border border-slate-300 text-slate-600">
+                            <span class="block font-medium text-slate-800">${t.category}</span>
+                            <span class="text-[11px] text-slate-500">Siklus: ${t.frequency}</span>
+                        </td>
+                        <td class="p-2.5 border border-slate-300 text-center ${statusColor}">${t.status}</td>
+                        <td class="p-2.5 border border-slate-300 text-slate-700 leading-relaxed">${logsHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Dates in Report
+            const todayStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('doc-print-date').textContent = todayStr;
+            document.getElementById('doc-sign-date').textContent = todayStr;
+        }
+
+        // ==========================================
+        // 9. INITIALIZE ON LOAD
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+            document.getElementById('display-year').textContent = now.getFullYear();
+            document.getElementById('report-year-input').value = now.getFullYear();
+
+            loadTasks();
+            updateAllViews();
+        });
+    </script>
+</body>
+</html>
